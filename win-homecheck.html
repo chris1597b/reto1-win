@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F5F2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>WIN HomeCheck — Mide tu señal por ambiente</title>
+<style>
+  :root{
+    --bg:#F6F5F2;
+    --ink:#23231F;
+    --ink-soft:#5B5A54;
+    --line:#E3DFD6;
+    --surface:#FFFFFF;
+    --brand:#E85D04;
+    --brand-ink:#FFFFFF;
+    --good:#3F8F2A;
+    --good-bg:#EAF4E4;
+    --ok:#C7860B;
+    --ok-bg:#FBF1DD;
+    --bad:#C23B3B;
+    --bad-bg:#FBE9E7;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-variant-numeric:tabular-nums;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  #app{
+    width:100%;
+    max-width:480px;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    padding:28px 22px 40px;
+  }
+  h1,h2,h3{
+    font-family:'Space Grotesk','Inter',sans-serif;
+    margin:0;
+    line-height:1.15;
+    letter-spacing:-0.01em;
+  }
+  .screen{display:none; flex:1; flex-direction:column;}
+  .screen.active{display:flex;}
+
+  /* --- top brand row --- */
+  .brand-row{display:flex; align-items:center; gap:8px; margin-bottom:36px;}
+  .brand-dot{width:10px;height:10px;border-radius:50%;background:var(--brand);}
+  .brand-row span{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:15px; color:var(--ink-soft);}
+
+  /* --- intro --- */
+  .hero-waves{display:flex; align-items:flex-end; gap:6px; height:70px; margin-bottom:28px;}
+  .bar{width:14px; border-radius:6px 6px 0 0; background:var(--brand); opacity:.25; animation:rise 1.8s ease-in-out infinite;}
+  .bar:nth-child(1){height:20%; animation-delay:0s;}
+  .bar:nth-child(2){height:45%; animation-delay:.15s;}
+  .bar:nth-child(3){height:70%; animation-delay:.3s;}
+  .bar:nth-child(4){height:95%; animation-delay:.45s;}
+  .bar:nth-child(5){height:55%; animation-delay:.6s;}
+  @keyframes rise{0%,100%{opacity:.25; transform:scaleY(.85);} 50%{opacity:1; transform:scaleY(1);}}
+
+  h1.title{font-size:34px; margin-bottom:14px;}
+  p.lede{font-size:16px; color:var(--ink-soft); line-height:1.55; margin:0 0 32px;}
+  .steps-mini{display:flex; flex-direction:column; gap:14px; margin-bottom:36px;}
+  .step-mini{display:flex; gap:12px; align-items:flex-start; font-size:14.5px; color:var(--ink-soft);}
+  .step-mini .num{flex:none; width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line); display:flex;align-items:center;justify-content:center; font-size:12px; font-weight:600; color:var(--ink);}
+
+  .btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px;
+    border-radius:12px; padding:17px 20px; width:100%;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:transform .12s ease, opacity .12s ease;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--brand); color:var(--brand-ink);}
+  .btn-ghost{background:transparent; color:var(--ink); border:1.5px solid var(--line);}
+  .btn[disabled]{opacity:.5; cursor:not-allowed;}
+  .btn-row{display:flex; gap:10px; margin-top:auto; padding-top:20px;}
+  .btn-row .btn{width:auto; flex:1;}
+
+  .spacer{flex:1;}
+
+  /* --- room picker --- */
+  .chip-grid{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;}
+  .chip{
+    padding:12px 16px; border-radius:999px; border:1.5px solid var(--line);
+    background:var(--surface); font-size:14.5px; font-weight:500; cursor:pointer;
+    color:var(--ink);
+  }
+  .chip.done{border-color:var(--good); color:var(--good); background:var(--good-bg);}
+  input.custom-room{
+    width:100%; padding:14px 16px; border-radius:12px; border:1.5px solid var(--line);
+    font-size:15px; font-family:inherit; margin-bottom:8px; background:var(--surface);
+  }
+  .measured-list{display:flex; flex-direction:column; gap:10px; margin:20px 0;}
+  .measured-row{display:flex; align-items:center; gap:10px; padding:13px 14px; background:var(--surface); border:1px solid var(--line); border-radius:12px;}
+  .dot{width:10px;height:10px;border-radius:50%; flex:none;}
+  .dot.good{background:var(--good);} .dot.ok{background:var(--ok);} .dot.bad{background:var(--bad);}
+  .measured-row .name{font-weight:600; font-size:14.5px;}
+  .measured-row .metric{margin-left:auto; font-size:13px; color:var(--ink-soft);}
+
+  /* --- measuring --- */
+  .meter-wrap{display:flex; flex-direction:column; align-items:center; margin:36px 0;}
+  .ring{width:190px;height:190px;border-radius:50%; border:3px solid var(--line); display:flex; align-items:center; justify-content:center; position:relative;}
+  .ring::before{content:''; position:absolute; inset:-3px; border-radius:50%; border:3px solid var(--brand); border-top-color:transparent; border-right-color:transparent; animation:spin 1.1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .ring .value{font-family:'Space Grotesk',sans-serif; font-size:30px; font-weight:600;}
+  .ring .unit{font-size:12.5px; color:var(--ink-soft);}
+  .measuring-label{text-align:center; font-size:14.5px; color:var(--ink-soft); margin-top:18px;}
+  .live-stats{display:flex; justify-content:center; gap:26px; margin-top:22px;}
+  .live-stats div{text-align:center;}
+  .live-stats .lv{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:19px;}
+  .live-stats .ll{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .motion-badge{display:inline-flex; align-self:center; gap:6px; align-items:center; font-size:12.5px; color:var(--ink-soft); margin-top:18px; padding:6px 12px; border-radius:999px; border:1px solid var(--line);}
+  .motion-dot{width:7px;height:7px;border-radius:50%; background:var(--line);}
+  .motion-dot.active{background:var(--brand);}
+
+  /* --- result --- */
+  .verdict-card{border-radius:var(--radius); padding:26px 22px; margin-bottom:22px;}
+  .verdict-card.good{background:var(--good-bg);} .verdict-card.ok{background:var(--ok-bg);} .verdict-card.bad{background:var(--bad-bg);}
+  .verdict-label{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:22px; margin-bottom:8px;}
+  .verdict-card.good .verdict-label{color:var(--good);}
+  .verdict-card.ok .verdict-label{color:var(--ok);}
+  .verdict-card.bad .verdict-label{color:var(--bad);}
+  .verdict-msg{font-size:15px; line-height:1.5; color:var(--ink);}
+  .metric-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:26px;}
+  .metric-box{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 8px; text-align:center;}
+  .metric-box .mv{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:19px;}
+  .metric-box .ml{font-size:11px; color:var(--ink-soft); margin-top:3px;}
+
+  /* --- report --- */
+  .home-score{text-align:center; margin:8px 0 16px;}
+  .home-score .hv{font-family:'Space Grotesk',sans-serif; font-size:56px; font-weight:700; transition:color .3s;}
+  .home-score .hv.score-good{color:var(--good);}
+  .home-score .hv.score-ok{color:var(--ok);}
+  .home-score .hv.score-bad{color:var(--bad);}
+  .home-score .hl{font-size:13.5px; color:var(--ink-soft); margin-top:4px;}
+
+  /* --- overall verdict banner --- */
+  .overall-verdict{
+    border-radius:var(--radius); padding:18px 20px; margin-bottom:22px;
+    display:flex; gap:14px; align-items:flex-start;
+  }
+  .overall-verdict.good{background:var(--good-bg); border:1.5px solid #a8d8a0;}
+  .overall-verdict.ok{background:var(--ok-bg); border:1.5px solid #e5c46b;}
+  .overall-verdict.bad{background:var(--bad-bg); border:1.5px solid #e8a09e;}
+  .overall-verdict .ov-icon{font-size:28px; line-height:1; flex:none; margin-top:2px;}
+
+  .overall-verdict .ov-title{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; margin-bottom:5px;}
+  .overall-verdict.good .ov-title{color:var(--good);}
+  .overall-verdict.ok  .ov-title{color:var(--ok);}
+  .overall-verdict.bad .ov-title{color:var(--bad);}
+  .overall-verdict .ov-msg{font-size:14px; line-height:1.55; color:var(--ink); margin:0 0 10px;}
+  .overall-verdict .ov-tip{
+    font-size:13px; line-height:1.5; color:var(--ink-soft);
+    padding:9px 12px; background:rgba(0,0,0,.04); border-radius:9px;
+    border-left:3px solid var(--brand);
+  }
+  .overall-verdict .ov-tip strong{color:var(--ink); font-weight:600;}
+  textarea.report-preview{
+    width:100%; min-height:150px; border:1px solid var(--line); border-radius:12px;
+    padding:14px; font-size:13px; font-family:'SFMono-Regular',Consolas,monospace;
+    color:var(--ink-soft); resize:none; margin-bottom:16px; background:var(--surface);
+  }
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:999px; font-size:13.5px; opacity:0; pointer-events:none; transition:opacity .25s ease;}
+  .toast.show{opacity:1;}
+
+  /* --- diagnosis cards --- */
+  .diag-card{
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius); padding:0; margin-bottom:12px;
+    overflow:hidden;
+  }
+  .diag-header{
+    display:flex; align-items:center; gap:10px;
+    padding:14px 16px; cursor:pointer;
+    -webkit-user-select:none; user-select:none;
+  }
+  .diag-header:active{background:var(--bg);}
+  .diag-name{font-weight:700; font-size:15px; flex:1;}
+  .diag-badge{
+    font-size:12px; font-weight:600; padding:4px 10px;
+    border-radius:999px; flex:none;
+  }
+  .diag-badge.good{background:var(--good-bg); color:var(--good);}
+  .diag-badge.ok{background:var(--ok-bg); color:var(--ok);}
+  .diag-badge.bad{background:var(--bad-bg); color:var(--bad);}
+  .diag-chevron{
+    flex:none; font-size:12px; color:var(--ink-soft);
+    transition:transform .2s ease;
+  }
+  .diag-card.open .diag-chevron{transform:rotate(180deg);}
+  .diag-body{
+    display:none; padding:0 16px 16px;
+    border-top:1px solid var(--line);
+  }
+  .diag-card.open .diag-body{display:block;}
+  .diag-metrics{
+    display:flex; gap:8px; margin:12px 0 14px; flex-wrap:wrap;
+  }
+  .diag-chip{
+    padding:5px 11px; border-radius:999px;
+    border:1px solid var(--line); font-size:12.5px; color:var(--ink-soft);
+    background:var(--bg);
+  }
+  .diag-why{
+    font-size:14px; line-height:1.6; color:var(--ink); margin:0 0 10px;
+  }
+  .diag-tip{
+    font-size:13px; line-height:1.55; color:var(--ink-soft);
+    padding:10px 12px; background:var(--bg); border-radius:10px;
+    border-left:3px solid var(--brand);
+  }
+  .diag-tip strong{color:var(--ink); font-weight:600;}
+
+  /* --- share link box --- */
+  .share-link-box{
+    display:flex; gap:8px; align-items:center;
+    background:var(--surface); border:1.5px solid var(--line); border-radius:12px;
+    padding:10px 14px; margin-bottom:16px;
+  }
+  .share-link-box input{
+    flex:1; border:none; outline:none; font-size:13px;
+    font-family:'SFMono-Regular',Consolas,monospace;
+    color:var(--ink-soft); background:transparent;
+    min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .copy-btn{
+    flex:none; padding:7px 14px; border-radius:8px; border:none;
+    background:var(--ink); color:#fff; font-size:12.5px; font-weight:600;
+    cursor:pointer; font-family:'Space Grotesk',sans-serif;
+    transition:opacity .12s;
+  }
+  .copy-btn:active{opacity:.75;}
+
+  /* --- shared report banner --- */
+  .shared-banner{
+    display:flex; align-items:center; gap:10px;
+    background:var(--ok-bg); border:1.5px solid var(--ok); border-radius:12px;
+    padding:12px 16px; margin-bottom:20px; font-size:14px; color:var(--ink);
+  }
+  .shared-banner svg{flex:none;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="brand-row"><div class="brand-dot"></div><span>WIN HomeCheck</span></div>
+
+  <!-- SCREEN 1: INTRO -->
+  <section class="screen active" id="screen-intro">
+    <div class="hero-waves"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+    <h1 class="title">¿Tu wifi llega bien a cada ambiente?</h1>
+    <p class="lede">Camina por tu casa con el celular. Medimos la señal en cada ambiente y te decimos, en español simple, dónde funciona bien y dónde no.</p>
+    <div class="steps-mini">
+      <div class="step-mini"><div class="num">1</div><div>Párate en un ambiente y dale nombre (sala, cuarto, cocina...).</div></div>
+      <div class="step-mini"><div class="num">2</div><div>Espera unos segundos mientras medimos, sin tocar nada más.</div></div>
+      <div class="step-mini"><div class="num">3</div><div>Repite en cada ambiente y envía el reporte con un toque.</div></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="startFlow()">Empezar medición</button>
+  </section>
+
+  <!-- SCREEN 2: ROOM PICKER -->
+  <section class="screen" id="screen-room">
+    <h2 style="font-size:24px; margin-bottom:8px;">¿Dónde estás parado ahora?</h2>
+    <p class="lede" style="margin-bottom:22px;">Elige un ambiente o escribe el nombre. Puedes medir tantos como quieras.</p>
+    <input type="text" class="custom-room" id="customRoomInput" placeholder="Escribe el nombre del ambiente">
+    <div class="chip-grid" id="chipGrid"></div>
+    <div id="measuredList" class="measured-list"></div>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="measureBtn" onclick="beginMeasurement()" disabled>Medir este ambiente</button>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goToReport()" id="reportBtnRoom" style="display:none;">Ver reporte final</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 3: MEASURING -->
+  <section class="screen" id="screen-measuring">
+    <div class="spacer"></div>
+    <div class="meter-wrap">
+      <div class="ring"><div><div class="value" id="ringValue">--</div><div class="unit" id="ringUnit">Mbps</div></div></div>
+      <div class="measuring-label" id="measuringLabel">Midiendo velocidad de bajada…</div>
+      <div class="motion-badge" id="motionBadge"><div class="motion-dot" id="motionDot"></div><span id="motionText">Detectando movimiento…</span></div>
+    </div>
+    <div class="live-stats">
+      <div><div class="lv" id="liveLatency">--</div><div class="ll">Latencia (ms)</div></div>
+      <div><div class="lv" id="liveJitter">--</div><div class="ll">Estabilidad (ms)</div></div>
+      <div><div class="lv" id="liveUpload">--</div><div class="ll">Subida (Mbps)</div></div>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- SCREEN 4: RESULT -->
+  <section class="screen" id="screen-result">
+    <h2 style="font-size:22px; margin-bottom:18px;" id="resultRoomTitle">Resultado</h2>
+    <div class="verdict-card" id="verdictCard">
+      <div class="verdict-label" id="verdictLabel">—</div>
+      <div class="verdict-msg" id="verdictMsg">—</div>
+    </div>
+    <div class="metric-grid">
+      <div class="metric-box"><div class="mv" id="mDown">--</div><div class="ml">Bajada Mbps</div></div>
+      <div class="metric-box"><div class="mv" id="mUp">--</div><div class="ml">Subida Mbps</div></div>
+      <div class="metric-box"><div class="mv" id="mLat">--</div><div class="ml">Latencia ms</div></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-row" style="flex-direction:column;">
+      <button class="btn btn-primary" onclick="goToRoomPicker()">Medir otro ambiente</button>
+      <button class="btn btn-ghost" onclick="goToReport()">Ver reporte final</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 5: REPORT -->
+  <section class="screen" id="screen-report">
+    <h2 style="font-size:24px; margin-bottom:4px;">Reporte de tu casa</h2>
+    <p class="lede" style="margin-bottom:0;">Esto es lo que le llegaría a WIN si lo envías.</p>
+    <div class="home-score">
+      <div class="hv" id="homeScore">--%</div>
+      <div class="hl" id="homeScoreLabel">ambientes con buena señal</div>
+    </div>
+    <!-- Overall verdict card -->
+    <div class="overall-verdict" id="overallVerdict" style="display:none;">
+      <div class="ov-icon" id="ovIcon"></div>
+      <div class="ov-body">
+        <div class="ov-title" id="ovTitle"></div>
+        <p class="ov-msg" id="ovMsg"></p>
+        <div class="ov-tip" id="ovTip"></div>
+      </div>
+    </div>
+    <div class="measured-list" id="reportList"></div>
+    <textarea class="report-preview" id="reportPreview" readonly></textarea>
+
+    <!-- Share link box -->
+    <div class="share-link-box">
+      <input type="text" id="shareLinkInput" readonly placeholder="Genera el enlace…">
+      <button class="copy-btn" onclick="copyShareLink()">Copiar</button>
+    </div>
+
+    <button class="btn btn-primary" onclick="sendReport()">Enviar reporte a WIN</button>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="shareLink()">🔗 Compartir enlace</button>
+      <button class="btn btn-ghost" onclick="goToRoomPicker()">Medir otro ambiente</button>
+    </div>
+    <div class="btn-row" style="margin-top:0;">
+      <button class="btn btn-ghost" onclick="resetAll()">Empezar de nuevo</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 6: SHARED REPORT (solo lectura) -->
+  <section class="screen" id="screen-shared">
+    <div class="shared-banner">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      <span>Estás viendo un reporte compartido de WIN HomeCheck</span>
+    </div>
+    <h2 style="font-size:24px; margin-bottom:4px;">Reporte de wifi</h2>
+    <p class="lede" id="sharedDate" style="margin-bottom:0;"></p>
+    <div class="home-score">
+      <div class="hv" id="sharedScore">--%</div>
+      <div class="hl" id="sharedScoreLabel">ambientes con señal excelente</div>
+    </div>
+    <div class="measured-list" id="sharedReportList"></div>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="resetAll()">Hacer mi propia medición</button>
+  </section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- estado ---------------- */
+const state = { rooms: [], currentRoomName: null, currentTest: null };
+const COMMON_ROOMS = ['Sala','Cocina','Dormitorio principal','Segundo piso','Comedor','Estudio'];
+const CF_BASE = 'https://speed.cloudflare.com';
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------------- flujo ---------------- */
+async function startFlow(){
+  // Pide permiso de movimiento en iOS dentro de un gesto de usuario
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+    try { await DeviceMotionEvent.requestPermission(); } catch(e) {}
+  }
+  renderRoomChips();
+  show('screen-room');
+}
+
+function renderRoomChips(){
+  const grid = document.getElementById('chipGrid');
+  grid.innerHTML = '';
+  COMMON_ROOMS.forEach(name=>{
+    const done = state.rooms.some(r=>r.name===name);
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (done ? ' done' : '');
+    chip.textContent = done ? name + ' ✓' : name;
+    chip.onclick = () => selectRoom(name);
+    grid.appendChild(chip);
+  });
+  renderMeasuredList();
+}
+
+function renderMeasuredList(){
+  const list = document.getElementById('measuredList');
+  list.innerHTML = '';
+  state.rooms.forEach(r=>{
+    const row = document.createElement('div');
+    row.className = 'measured-row';
+    row.innerHTML = `<div class="dot ${r.verdict}"></div><div class="name">${r.name}</div><div class="metric">${r.downloadMbps.toFixed(1)} Mbps</div>`;
+    list.appendChild(row);
+  });
+  document.getElementById('reportBtnRoom').style.display = state.rooms.length ? 'block' : 'none';
+}
+
+function selectRoom(name){
+  document.getElementById('customRoomInput').value = name;
+  state.currentRoomName = name;
+  document.getElementById('measureBtn').disabled = false;
+}
+document.getElementById('customRoomInput').addEventListener('input', e=>{
+  state.currentRoomName = e.target.value.trim();
+  document.getElementById('measureBtn').disabled = !state.currentRoomName;
+});
+
+function goToRoomPicker(){
+  document.getElementById('customRoomInput').value = '';
+  state.currentRoomName = null;
+  document.getElementById('measureBtn').disabled = true;
+  renderRoomChips();
+  show('screen-room');
+}
+
+/* ---------------- sensor de movimiento (indicador visual) ---------------- */
+let motionActive = false, motionTimeout;
+function handleMotion(ev){
+  const a = ev.accelerationIncludingGravity || ev.acceleration;
+  if (!a) return;
+  const mag = Math.abs(a.x||0) + Math.abs(a.y||0) + Math.abs(a.z||0);
+  const moving = mag > 12.5;
+  const dot = document.getElementById('motionDot');
+  const txt = document.getElementById('motionText');
+  if (!dot) return;
+  if (moving){
+    dot.classList.add('active');
+    txt.textContent = 'Movimiento detectado';
+    clearTimeout(motionTimeout);
+    motionTimeout = setTimeout(()=>{ dot.classList.remove('active'); txt.textContent='Quieto — buena posición para medir'; }, 900);
+  }
+}
+
+/* ---------------- medición ---------------- */
+async function beginMeasurement(){
+  if (!state.currentRoomName) return;
+  show('screen-measuring');
+  document.getElementById('ringValue').textContent = '--';
+  document.getElementById('liveLatency').textContent = '--';
+  document.getElementById('liveJitter').textContent = '--';
+  document.getElementById('liveUpload').textContent = '--';
+  window.addEventListener('devicemotion', handleMotion);
+
+  try{
+    setLabel('Midiendo latencia…');
+    const {median, jitter} = await measureLatency();
+    document.getElementById('liveLatency').textContent = median.toFixed(0);
+    document.getElementById('liveJitter').textContent = jitter.toFixed(0);
+
+    setLabel('Midiendo velocidad de bajada…');
+    document.getElementById('ringUnit').textContent = 'Mbps ↓';
+    const down = await measureDownload();
+    document.getElementById('ringValue').textContent = down.toFixed(1);
+
+    setLabel('Midiendo velocidad de subida…');
+    const up = await measureUpload();
+    document.getElementById('liveUpload').textContent = up.toFixed(1);
+
+    finishMeasurement(down, up, median, jitter);
+  } catch(err){
+    console.error(err);
+    finishMeasurement(0, 0, 999, 0, true);
+  } finally {
+    window.removeEventListener('devicemotion', handleMotion);
+  }
+}
+function setLabel(t){ document.getElementById('measuringLabel').textContent = t; }
+
+async function measureLatency(){
+  const samples = [];
+  for (let i=0;i<5;i++){
+    const t0 = performance.now();
+    await fetch(`${CF_BASE}/__down?bytes=0`, {cache:'no-store'});
+    samples.push(performance.now() - t0);
+  }
+  const used = samples.slice(1); // descarta el primero (warm-up de conexión)
+  const sorted = [...used].sort((a,b)=>a-b);
+  const median = sorted[Math.floor(sorted.length/2)];
+  const jitter = Math.max(...used) - Math.min(...used);
+  return {median, jitter};
+}
+
+async function measureDownload(){
+  const bytes = 4_000_000; // 4 MB
+  const t0 = performance.now();
+  const res = await fetch(`${CF_BASE}/__down?bytes=${bytes}`, {cache:'no-store'});
+  const buf = await res.arrayBuffer();
+  const seconds = (performance.now() - t0) / 1000;
+  return (buf.byteLength * 8) / seconds / 1_000_000;
+}
+
+async function measureUpload(){
+  const bytes = 1_500_000; // 1.5 MB
+  const blob = new Blob([new Uint8Array(bytes)]);
+  const t0 = performance.now();
+  await fetch(`${CF_BASE}/__up`, {method:'POST', body:blob, cache:'no-store'});
+  const seconds = (performance.now() - t0) / 1000;
+  return (bytes * 8) / seconds / 1_000_000;
+}
+
+/* ---------------- clasificación en español simple ---------------- */
+function classify(down, up, latency){
+  const downScore = down >= 25 ? 2 : down >= 5 ? 1 : 0;
+  const latScore = latency <= 50 ? 2 : latency <= 150 ? 1 : 0;
+  const score = Math.min(downScore, latScore);
+  if (score === 2) return {verdict:'good', label:'Señal excelente',
+    msg:`Con ${down.toFixed(1)} Mbps de bajada y ${latency.toFixed(0)} ms de latencia, aquí puedes ver video en 4K, hacer videollamadas y jugar en línea sin problema.`};
+  if (score === 1) return {verdict:'ok', label:'Señal aceptable',
+    msg:`Con ${down.toFixed(1)} Mbps y ${latency.toFixed(0)} ms de latencia, navegar y ver video funciona bien, pero las videollamadas o los juegos en línea pueden trabarse a veces.`};
+  return {verdict:'bad', label:'Señal débil',
+    msg:`Con solo ${down.toFixed(1)} Mbps y ${latency.toFixed(0)} ms de latencia, aquí hasta cargar páginas simples puede sentirse lento. Este ambiente necesita un repetidor o un punto de acceso adicional.`};
+}
+
+/* ---------------- diagnóstico de causas en lenguaje común ---------------- */
+function diagnose(down, up, latency, jitter){
+  const causes = [];
+  const tips = [];
+
+  // --- velocidad de bajada ---
+  if (down < 5) {
+    causes.push('La señal del router llega muy debilitada a este lugar. Pasa algo parecido a cuando intentas escuchar música desde una habitación muy lejana con la puerta cerrada: el sonido llega, pero muy bajo.');
+    tips.push('Acerca el router o coloca un repetidor de señal (extensor WiFi) más cerca de este ambiente.');
+  } else if (down < 25) {
+    causes.push('La velocidad es suficiente para lo básico, pero el router está demasiado lejos o hay paredes gruesas, muebles metálicos o electrodomésticos en el camino que debilitan la señal.');
+    tips.push('Prueba mover el router a un lugar más central de la casa o elevar su posición (encima de un mueble alto funciona mejor que en el piso).');
+  }
+
+  // --- latencia alta ---
+  if (latency > 150) {
+    causes.push('El tiempo de respuesta es muy alto. Esto es como si cada vez que hablas por teléfono hubiera un silencio largo antes de que te contesten. Suele ocurrir cuando muchos dispositivos usan el wifi al mismo tiempo, o cuando el router está muy lejos.');
+    tips.push('Desconecta temporalmente dispositivos que no estés usando (Smart TVs, consolas, celulares en segundo plano) y verifica que nadie esté descargando archivos grandes.');
+  } else if (latency > 50) {
+    causes.push('El tiempo de respuesta es algo elevado. Las páginas cargan bien, pero en videollamadas o juegos puedes notar pequeños cortes. Puede deberse a la distancia al router o a paredes que bloquean parte de la señal.');
+  }
+
+  // --- inestabilidad (jitter) ---
+  if (jitter > 50) {
+    causes.push('La conexión es inestable: la velocidad sube y baja constantemente. Esto suele pasar por interferencia de otros dispositivos que usan la misma frecuencia (hornos microondas, teléfonos inalámbricos, routers de vecinos o demasiados dispositivos conectados).');
+    tips.push('Si tu router tiene banda de 5 GHz, conéctate a esa en lugar de la de 2.4 GHz: es menos susceptible a interferencias.');
+  }
+
+  // --- asimetría subida/bajada ---
+  if (up < 2 && down >= 10) {
+    causes.push('La velocidad de subida es muy baja comparada con la de bajada. Esto afecta principalmente las videollamadas (donde necesitas enviar tu imagen y voz) y el trabajo desde casa.');
+    tips.push('Este desbalance puede ser parte del plan contratado, pero si el problema es solo en este ambiente, acercarse al router mejora la subida.');
+  }
+
+  // --- sin causas identificadas (señal buena) ---
+  if (causes.length === 0) {
+    causes.push('La señal en este ambiente llega en buenas condiciones. El router tiene buena cobertura aquí y no hay obstáculos importantes que debiliten la conexión.');
+  }
+  if (tips.length === 0) {
+    tips.push('No hay nada que cambiar aquí. Si otros ambientes tienen problemas, considera mantener el router en una posición que favorezca esas zonas.');
+  }
+
+  return { causes: causes.join(' '), tip: tips.join(' ') };
+}
+
+function finishMeasurement(down, up, latency, jitter, failed=false){
+  const result = failed
+    ? {verdict:'bad', label:'No se pudo medir', msg:'La conexión se interrumpió durante la prueba. Inténtalo de nuevo parado en el mismo lugar.'}
+    : classify(down, up, latency);
+
+  state.rooms.push({
+    name: state.currentRoomName, downloadMbps: down, uploadMbps: up,
+    latencyMs: latency, jitterMs: jitter, verdict: result.verdict,
+  });
+
+  document.getElementById('resultRoomTitle').textContent = state.currentRoomName;
+  const card = document.getElementById('verdictCard');
+  card.className = 'verdict-card ' + result.verdict;
+  document.getElementById('verdictLabel').textContent = result.label;
+  document.getElementById('verdictMsg').textContent = result.msg;
+  document.getElementById('mDown').textContent = down.toFixed(1);
+  document.getElementById('mUp').textContent = up.toFixed(1);
+  document.getElementById('mLat').textContent = latency.toFixed(0);
+  show('screen-result');
+}
+
+/* ---------------- reporte final ---------------- */
+function calcScore(rooms){
+  const weights = { good: 100, ok: 50, bad: 0 };
+  const sum = rooms.reduce((acc, r) => acc + (weights[r.verdict] ?? 0), 0);
+  return Math.round(sum / rooms.length);
+}
+
+function overallVerdict(pct, badRooms){
+  const card    = document.getElementById('overallVerdict');
+  const icon    = document.getElementById('ovIcon');
+  const title   = document.getElementById('ovTitle');
+  const msg     = document.getElementById('ovMsg');
+  const tip     = document.getElementById('ovTip');
+  const scoreEl = document.getElementById('homeScore');
+
+  // Reset color class
+  scoreEl.className = 'hv';
+  card.className = 'overall-verdict';
+
+  if (pct >= 75) {
+    scoreEl.classList.add('score-good');
+    card.classList.add('good');
+    icon.textContent = '🟢';
+    title.textContent = 'Señal excelente en toda la casa';
+    msg.textContent = `Tu hogar tiene una cobertura WiFi muy buena. La mayoría de tus ambientes reciben señal de calidad para video 4K, videollamadas y juegos en línea.`;
+    tip.innerHTML = `<strong>💡 Consejo:</strong> Mantén el router en su posición actual. Si en algún rincón la señal baja, un extensor puntual es suficiente.`;
+  } else if (pct >= 40) {
+    scoreEl.classList.add('score-ok');
+    card.classList.add('ok');
+    icon.textContent = '🟡';
+    title.textContent = 'Señal aceptable — hay margen de mejora';
+    const names = badRooms.map(r=>r.name).join(', ');
+    msg.textContent = `La señal llega bien a varios ambientes, pero hay zonas donde puede trabarse. ${names ? 'Los ambientes con más problemas: ' + names + '.' : ''}Esto suele deberse a paredes gruesas o distancia al router.`;
+    tip.innerHTML = `<strong>💡 Qué puedes hacer:</strong> Mueve el router a un lugar más central y elevado. Si el problema persiste, un <strong>repetidor WiFi Mesh de WIN</strong> puede extender la señal a los ambientes débiles sin cambiar tu plan.`;
+  } else {
+    scoreEl.classList.add('score-bad');
+    card.classList.add('bad');
+    icon.textContent = '🔴';
+    title.textContent = 'Señal insuficiente en gran parte de la casa';
+    const names = badRooms.map(r=>r.name).join(', ');
+    msg.textContent = `Tu cobertura WiFi necesita mejoras importantes. ${names ? 'Ambientes con señal débil: ' + names + '.' : ''} En estas zonas hasta cargar páginas puede sentirse lento.`;
+    tip.innerHTML = `<strong>💡 Recomendación WIN:</strong> Primero prueba reubicar el router al centro de la casa y en alto. Si no mejora, un sistema <strong>WiFi Mesh de WIN</strong> es la solución ideal: cubre toda la casa con varios nodos que trabajan como uno solo. Consulta a tu asesor WIN.`;
+  }
+  card.style.display = 'flex';
+}
+
+function goToReport(){
+  if (!state.rooms.length){ toast('Mide al menos un ambiente primero'); return; }
+  const pct = calcScore(state.rooms);
+  const good = state.rooms.filter(r=>r.verdict==='good').length;
+  const ok   = state.rooms.filter(r=>r.verdict==='ok').length;
+  const bad  = state.rooms.filter(r=>r.verdict==='bad').length;
+  const badRooms = state.rooms.filter(r=>r.verdict==='bad');
+  document.getElementById('homeScore').textContent = pct + '%';
+  const parts = [];
+  if (good) parts.push(`${good} excelente${good>1?'s':''}`);
+  if (ok)   parts.push(`${ok} aceptable${ok>1?'s':''}`);
+  if (bad)  parts.push(`${bad} débil${bad>1?'es':''}`);
+  document.getElementById('homeScoreLabel').textContent = parts.join(' · ') + ` de ${state.rooms.length} ambiente${state.rooms.length>1?'s':''}`;
+  overallVerdict(pct, badRooms);
+
+  const list = document.getElementById('reportList');
+  list.innerHTML = '';
+  state.rooms.forEach((r, i) => {
+    const diag = diagnose(r.downloadMbps, r.uploadMbps, r.latencyMs, r.jitterMs);
+    const verdictLabels = { good:'Excelente', ok:'Aceptable', bad:'Señal débil' };
+    const card = document.createElement('div');
+    card.className = 'diag-card';
+    card.innerHTML = `
+      <div class="diag-header" onclick="toggleDiag(this)">
+        <div class="dot ${r.verdict}" style="flex:none;"></div>
+        <div class="diag-name">${r.name}</div>
+        <div class="diag-badge ${r.verdict}">${verdictLabels[r.verdict] || r.verdict}</div>
+        <div class="diag-chevron">▼</div>
+      </div>
+      <div class="diag-body">
+        <div class="diag-metrics">
+          <span class="diag-chip">↓ ${r.downloadMbps.toFixed(1)} Mbps bajada</span>
+          <span class="diag-chip">↑ ${r.uploadMbps.toFixed(1)} Mbps subida</span>
+          <span class="diag-chip">⏱ ${r.latencyMs.toFixed(0)} ms latencia</span>
+          <span class="diag-chip">〜 ${r.jitterMs.toFixed(0)} ms estabilidad</span>
+        </div>
+        <p class="diag-why"><strong>¿Por qué es así?</strong><br>${diag.causes}</p>
+        <div class="diag-tip"><strong>💡 Qué puedes hacer:</strong> ${diag.tip}</div>
+      </div>`;
+    // abrir la primera tarjeta por defecto
+    if (i === 0) card.classList.add('open');
+    list.appendChild(card);
+  });
+
+  document.getElementById('reportPreview').value = buildReportText();
+
+  // Generar enlace compartible
+  const shareUrl = buildShareUrl();
+  document.getElementById('shareLinkInput').value = shareUrl;
+
+  show('screen-report');
+}
+
+function toggleDiag(header){
+  header.parentElement.classList.toggle('open');
+}
+
+function buildReportText(){
+  const lines = [`Reporte WIN HomeCheck — ${new Date().toLocaleString('es-PE')}`, ''];
+  state.rooms.forEach(r=>{
+    const diag = diagnose(r.downloadMbps, r.uploadMbps, r.latencyMs, r.jitterMs);
+    lines.push(`${r.name}: ${r.verdict.toUpperCase()}`);
+    lines.push(`  Bajada: ${r.downloadMbps.toFixed(1)} Mbps | Subida: ${r.uploadMbps.toFixed(1)} Mbps | Latencia: ${r.latencyMs.toFixed(0)} ms | Estabilidad: ${r.jitterMs.toFixed(0)} ms`);
+    lines.push(`  Causa: ${diag.causes}`);
+    lines.push(`  Recomendación: ${diag.tip}`);
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+/* ---------------- enlace compartible ---------------- */
+function buildShareUrl(){
+  const payload = {
+    ts: Date.now(),
+    rooms: state.rooms.map(r => ({
+      n: r.name,
+      d: parseFloat(r.downloadMbps.toFixed(2)),
+      u: parseFloat(r.uploadMbps.toFixed(2)),
+      l: parseFloat(r.latencyMs.toFixed(1)),
+      j: parseFloat(r.jitterMs.toFixed(1)),
+      v: r.verdict
+    }))
+  };
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  return `${location.origin}${location.pathname}#r=${encoded}`;
+}
+
+function copyShareLink(){
+  const input = document.getElementById('shareLinkInput');
+  if (!input.value || input.value === 'Genera el enlace…') return;
+  navigator.clipboard.writeText(input.value)
+    .then(() => toast('¡Enlace copiado al portapapeles!'))
+    .catch(() => {
+      input.select();
+      document.execCommand('copy');
+      toast('¡Enlace copiado!');
+    });
+}
+
+async function shareLink(){
+  const url = buildShareUrl();
+  if (navigator.share){
+    try{
+      await navigator.share({ title: 'Reporte WIN HomeCheck', url });
+      return;
+    } catch(e) { /* usuario canceló */ }
+  }
+  copyShareLink();
+}
+
+/* ---------------- leer reporte compartido desde URL ---------------- */
+function loadSharedReport(){
+  const hash = location.hash;
+  if (!hash.startsWith('#r=')) return false;
+  try{
+    const encoded = hash.slice(3);
+    const json = decodeURIComponent(escape(atob(encoded)));
+    const payload = JSON.parse(json);
+    if (!payload.rooms || !payload.rooms.length) return false;
+
+    const rooms = payload.rooms.map(r => ({
+      name: r.n,
+      downloadMbps: r.d,
+      uploadMbps: r.u,
+      latencyMs: r.l,
+      jitterMs: r.j,
+      verdict: r.v
+    }));
+
+    const pct  = calcScore(rooms);
+    const good = rooms.filter(r => r.verdict === 'good').length;
+    const ok   = rooms.filter(r => r.verdict === 'ok').length;
+    const bad  = rooms.filter(r => r.verdict === 'bad').length;
+
+    document.getElementById('sharedScore').textContent = pct + '%';
+    const parts2 = [];
+    if (good) parts2.push(`${good} excelente${good>1?'s':''}`);
+    if (ok)   parts2.push(`${ok} aceptable${ok>1?'s':''}`);
+    if (bad)  parts2.push(`${bad} débil${bad>1?'es':''}`);
+    document.getElementById('sharedScoreLabel').textContent = parts2.join(' · ') + ` de ${rooms.length} ambiente${rooms.length>1?'s':''}`;
+
+    const date = payload.ts ? new Date(payload.ts).toLocaleString('es-PE') : '';
+    document.getElementById('sharedDate').textContent = date ? `Medido el ${date}` : '';
+
+    const list = document.getElementById('sharedReportList');
+    list.innerHTML = '';
+    rooms.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'measured-row';
+      row.innerHTML = `<div class="dot ${r.verdict}"></div><div class="name">${r.name}</div><div class="metric">${r.downloadMbps.toFixed(1)}↓ / ${r.uploadMbps.toFixed(1)}↑ Mbps · ${r.latencyMs.toFixed(0)} ms</div>`;
+      list.appendChild(row);
+    });
+
+    show('screen-shared');
+    return true;
+  } catch(e){
+    console.warn('Enlace inválido:', e);
+    return false;
+  }
+}
+
+// Intentar cargar reporte compartido al inicio
+if (!loadSharedReport()) {
+  // inicio normal, no hacer nada (la pantalla intro ya está activa)
+}
+
+async function sendReport(){
+  const text = buildReportText();
+  if (navigator.share){
+    try{
+      await navigator.share({ title:'Reporte WIN HomeCheck', text });
+      return;
+    }catch(e){ /* usuario canceló, sigue al respaldo */ }
+  }
+  const waUrl = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(waUrl, '_blank');
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('Reporte copiado y WhatsApp abierto');
+  }catch(e){
+    toast('WhatsApp abierto para enviar el reporte');
+  }
+}
+
+function resetAll(){
+  state.rooms = [];
+  state.currentRoomName = null;
+  show('screen-intro');
+}
+</script>
+</body>
+</html>
