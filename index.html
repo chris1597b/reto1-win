@@ -72,6 +72,8 @@
   .steps-mini{display:flex; flex-direction:column; gap:14px; margin-bottom:36px;}
   .step-mini{display:flex; gap:12px; align-items:flex-start; font-size:14.5px; color:var(--ink-soft);}
   .step-mini .num{flex:none; width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line); display:flex;align-items:center;justify-content:center; font-size:12px; font-weight:600; color:var(--ink);}
+  .step-mini .step-title{font-size:15px; font-weight:700; color:var(--ink); margin-bottom:3px; line-height:1.3;}
+  .step-mini .step-desc{font-size:14px; line-height:1.45; color:var(--ink-soft);}
 
   .btn{
     appearance:none; border:none; cursor:pointer;
@@ -297,12 +299,30 @@
   <!-- SCREEN 1: INTRO -->
   <section class="screen active" id="screen-intro">
     <div class="hero-waves"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
-    <h1 class="title">¿Tu wifi llega bien a cada ambiente?</h1>
-    <p class="lede">Camina por tu casa con el celular. Medimos la señal en cada ambiente y te decimos, en español simple, dónde funciona bien y dónde no.</p>
+    <h1 class="title">Detecta tu señal <span style="white-space:nowrap;">WiFi 📶</span></h1>
+    <p class="lede">Descubre qué tan buena es tu conexión en cada ambiente de tu casa.</p>
     <div class="steps-mini">
-      <div class="step-mini"><div class="num">1</div><div>Párate en un ambiente y dale nombre (sala, cuarto, cocina...).</div></div>
-      <div class="step-mini"><div class="num">2</div><div>Espera unos segundos mientras medimos, sin tocar nada más.</div></div>
-      <div class="step-mini"><div class="num">3</div><div>Repite en cada ambiente y envía el reporte con un toque.</div></div>
+      <div class="step-mini">
+        <div class="num">1</div>
+        <div>
+          <div class="step-title">Elige un ambiente</div>
+          <div class="step-desc">Sala, cuarto, cocina… donde quieras medir.</div>
+        </div>
+      </div>
+      <div class="step-mini">
+        <div class="num">2</div>
+        <div>
+          <div class="step-title">Haz la medición</div>
+          <div class="step-desc">Quédate ahí unos segundos y detectaremos tu señal.</div>
+        </div>
+      </div>
+      <div class="step-mini">
+        <div class="num">3</div>
+        <div>
+          <div class="step-title">¡Listo!</div>
+          <div class="step-desc">Conoce la calidad de tu conexión y descubre dónde tienes la mejor señal.</div>
+        </div>
+      </div>
     </div>
     <div class="spacer"></div>
     <button class="btn btn-primary" onclick="goToDatos()">Empezar medición</button>
