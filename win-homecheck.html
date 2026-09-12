@@ -807,8 +807,8 @@ function diagnose(down, up, latency, jitter){
     causes.push({icon:'📤', title:'Cuesta enviar lo que subes', text:'Afecta sobre todo a tus videollamadas.'});
   }
 
+  // Si la señal está bien no hay nada que recomendar: tips queda vacío a propósito.
   if (!causes.length) causes.push({icon:'✅', title:'Aquí todo llega bien', text:'El router cubre este ambiente sin obstáculos.'});
-  if (!tips.length)   tips.push('Nada que cambiar en este ambiente');
 
   // corto a propósito: máximo 2 causas y 3 acciones
   return { causes: causes.slice(0, 2), tips: tips.slice(0, 3) };
@@ -949,11 +949,12 @@ function goToReport(){
               <div class="cause-txt"><b>${c.title}</b><span>${c.text}</span></div>
             </div>`).join('')}
         </div>
+        ${diag.tips.length ? `
         <div class="todo">
           <div class="todo-head">💡 Prueba esto</div>
           ${diag.tips.map(t => `
             <label class="todo-item"><input type="checkbox"><span>${t}</span></label>`).join('')}
-        </div>
+        </div>` : ''}
       </div>`;
     // abrir la primera tarjeta por defecto
     if (i === 0) card.classList.add('open');
@@ -990,7 +991,7 @@ function buildReportText(){
     lines.push(`${r.name}: ${r.verdict.toUpperCase()}`);
     lines.push(`  Bajada: ${r.downloadMbps.toFixed(1)} Mbps | Subida: ${r.uploadMbps.toFixed(1)} Mbps | Latencia: ${r.latencyMs.toFixed(0)} ms | Estabilidad: ${r.jitterMs.toFixed(0)} ms`);
     lines.push(`  Causa: ${diag.causes.map(c => c.title).join(' · ')}`);
-    lines.push(`  Recomendación: ${diag.tips.join(' · ')}`);
+    if (diag.tips.length) lines.push(`  Recomendación: ${diag.tips.join(' · ')}`);
     lines.push('');
   });
   return lines.join('\n');
