@@ -180,35 +180,59 @@
   .metric-box .mv{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:19px;}
   .metric-box .ml{font-size:11px; color:var(--ink-soft); margin-top:3px;}
 
-  /* --- report --- */
-  .home-score{text-align:center; margin:8px 0 16px;}
-  .home-score .hv{font-family:'Space Grotesk',sans-serif; font-size:56px; font-weight:700; transition:color .3s;}
-  .home-score .hv.score-good{color:var(--good);}
-  .home-score .hv.score-ok{color:var(--ok);}
-  .home-score .hv.score-bad{color:var(--bad);}
-  .home-score .hl{font-size:13.5px; color:var(--ink-soft); margin-top:4px;}
-
-  /* --- overall verdict banner --- */
-  .overall-verdict{
-    border-radius:var(--radius); padding:18px 20px; margin-bottom:22px;
-    display:flex; gap:14px; align-items:flex-start;
+  /* --- report: tarjeta de puntaje con anillo --- */
+  .score-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:20px; margin-bottom:14px; box-shadow:0 1px 2px rgba(35,35,31,.04);
   }
-  .overall-verdict.good{background:var(--good-bg); border:1.5px solid #a8d8a0;}
-  .overall-verdict.ok{background:var(--ok-bg); border:1.5px solid #e5c46b;}
-  .overall-verdict.bad{background:var(--bad-bg); border:1.5px solid #e8a09e;}
-  .overall-verdict .ov-icon{font-size:28px; line-height:1; flex:none; margin-top:2px;}
+  .rc-title{font-size:19px; margin:0 0 5px;}
+  .rc-meta{font-size:12.5px; color:var(--ink-soft); line-height:1.45; margin:0 0 18px;}
+  .score-row{display:flex; align-items:center; gap:18px;}
+  .ring{position:relative; width:82px; height:82px; flex:none;}
+  .ring svg{transform:rotate(-90deg); display:block;}
+  .ring .ring-prog{transition:stroke-dashoffset .7s ease;}
+  .ring .ring-prog.score-good{stroke:var(--good);}
+  .ring .ring-prog.score-ok{stroke:var(--ok);}
+  .ring .ring-prog.score-bad{stroke:var(--bad);}
+  .ring .pct{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:20px;
+  }
+  .score-text{min-width:0;}
+  .score-head{font-size:15px; font-weight:700; line-height:1.35; margin-bottom:3px;}
+  .score-sub{font-size:13.5px; color:var(--ink-soft); line-height:1.45;}
 
-  .overall-verdict .ov-title{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; margin-bottom:5px;}
+  /* --- overall verdict card --- */
+  .overall-verdict{
+    background:var(--surface); border-radius:16px; padding:18px; margin-bottom:22px;
+    border:1.5px solid var(--line); box-shadow:0 1px 2px rgba(35,35,31,.04);
+  }
+  .overall-verdict.good{border-color:var(--good);}
+  .overall-verdict.ok{border-color:var(--ok);}
+  .overall-verdict.bad{border-color:var(--bad);}
+  .overall-verdict .ov-head{display:flex; gap:12px; align-items:center; margin-bottom:12px;}
+  .overall-verdict .ov-badge{
+    width:38px; height:38px; border-radius:50%; flex:none; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .overall-verdict.good .ov-badge{background:var(--good-bg);}
+  .overall-verdict.ok   .ov-badge{background:var(--ok-bg);}
+  .overall-verdict.bad  .ov-badge{background:var(--bad-bg);}
+
+  .overall-verdict .ov-title{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; line-height:1.3; flex:1;}
   .overall-verdict.good .ov-title{color:var(--good);}
   .overall-verdict.ok  .ov-title{color:var(--ok);}
   .overall-verdict.bad .ov-title{color:var(--bad);}
-  .overall-verdict .ov-msg{font-size:14px; line-height:1.55; color:var(--ink); margin:0 0 10px;}
-  .overall-verdict .ov-tip{
-    font-size:13px; line-height:1.5; color:var(--ink-soft);
-    padding:9px 12px; background:rgba(0,0,0,.04); border-radius:9px;
-    border-left:3px solid var(--brand);
+  .overall-verdict .ov-msg{font-size:14px; line-height:1.55; color:var(--ink); margin:0 0 12px;}
+  .overall-verdict .ov-reward{
+    background:var(--surface); border:1.5px dashed var(--brand);
+    border-radius:12px; padding:12px 14px;
   }
-  .overall-verdict .ov-tip strong{color:var(--ink); font-weight:600;}
+  .overall-verdict .rw-label{
+    font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--brand); margin-bottom:4px;
+  }
+  .overall-verdict .rw-value{font-size:15px; font-weight:700; color:var(--ink); line-height:1.35;}
   textarea.report-preview{
     width:100%; min-height:150px; border:1px solid var(--line); border-radius:12px;
     padding:14px; font-size:13px; font-family:'SFMono-Regular',Consolas,monospace;
@@ -417,19 +441,35 @@
 
   <!-- SCREEN 5: REPORT -->
   <section class="screen" id="screen-report">
-    <h2 style="font-size:24px; margin-bottom:4px;">Reporte de tu casa</h2>
-    <p class="lede" style="margin-bottom:0;" id="reportCustomerLine">Esto es lo que le llegaría a WIN si lo envías.</p>
-    <div class="home-score">
-      <div class="hv" id="homeScore">--%</div>
-      <div class="hl" id="homeScoreLabel">ambientes con buena señal</div>
+    <!-- Score card -->
+    <div class="score-card">
+      <h2 class="rc-title">Reporte de tu casa</h2>
+      <p class="rc-meta" id="reportCustomerLine">Esto es lo que le llegaría a WIN si lo envías.</p>
+      <div class="score-row">
+        <div class="ring">
+          <svg width="82" height="82" viewBox="0 0 82 82" aria-hidden="true">
+            <circle cx="41" cy="41" r="32" fill="none" stroke="var(--line)" stroke-width="9"/>
+            <circle class="ring-prog" id="ringProgress" cx="41" cy="41" r="32" fill="none" stroke-width="9"
+                    stroke-linecap="round" stroke-dasharray="201.06" stroke-dashoffset="201.06"/>
+          </svg>
+          <div class="pct" id="homeScore">--%</div>
+        </div>
+        <div class="score-text">
+          <div class="score-head" id="homeScoreHead">—</div>
+          <div class="score-sub" id="homeScoreLabel">—</div>
+        </div>
+      </div>
     </div>
     <!-- Overall verdict card -->
     <div class="overall-verdict" id="overallVerdict" style="display:none;">
-      <div class="ov-icon" id="ovIcon"></div>
-      <div class="ov-body">
+      <div class="ov-head">
+        <div class="ov-badge" id="ovBadge"></div>
         <div class="ov-title" id="ovTitle"></div>
-        <p class="ov-msg" id="ovMsg"></p>
-        <div class="ov-tip" id="ovTip"></div>
+      </div>
+      <p class="ov-msg" id="ovMsg"></p>
+      <div class="ov-reward">
+        <div class="rw-label">🎁 Desbloqueaste</div>
+        <div class="rw-value" id="ovReward"></div>
       </div>
     </div>
     <div class="measured-list" id="reportList"></div>
@@ -457,11 +497,23 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       <span>Estás viendo un reporte compartido de WIN HomeCheck</span>
     </div>
-    <h2 style="font-size:24px; margin-bottom:4px;">Reporte de wifi</h2>
-    <p class="lede" id="sharedDate" style="margin-bottom:0;"></p>
-    <div class="home-score">
-      <div class="hv" id="sharedScore">--%</div>
-      <div class="hl" id="sharedScoreLabel">ambientes con señal excelente</div>
+    <div class="score-card">
+      <h2 class="rc-title">Reporte de wifi</h2>
+      <p class="rc-meta" id="sharedDate"></p>
+      <div class="score-row">
+        <div class="ring">
+          <svg width="82" height="82" viewBox="0 0 82 82" aria-hidden="true">
+            <circle cx="41" cy="41" r="32" fill="none" stroke="var(--line)" stroke-width="9"/>
+            <circle class="ring-prog" id="sharedRingProgress" cx="41" cy="41" r="32" fill="none" stroke-width="9"
+                    stroke-linecap="round" stroke-dasharray="201.06" stroke-dashoffset="201.06"/>
+          </svg>
+          <div class="pct" id="sharedScore">--%</div>
+        </div>
+        <div class="score-text">
+          <div class="score-head" id="sharedScoreHead">—</div>
+          <div class="score-sub" id="sharedScoreLabel">—</div>
+        </div>
+      </div>
     </div>
     <div class="measured-list" id="sharedReportList"></div>
     <div class="spacer"></div>
@@ -816,63 +868,82 @@ function calcScore(rooms){
   return Math.round(sum / rooms.length);
 }
 
-function overallVerdict(pct, badRooms){
-  const card    = document.getElementById('overallVerdict');
-  const icon    = document.getElementById('ovIcon');
-  const title   = document.getElementById('ovTitle');
-  const msg     = document.getElementById('ovMsg');
-  const tip     = document.getElementById('ovTip');
-  const scoreEl = document.getElementById('homeScore');
+/* Estado general del hogar: manda el peor ambiente, no el promedio.
+   Verde solo si TODOS los ambientes salieron excelentes. */
+function overallState(rooms){
+  const bad = rooms.filter(r => r.verdict === 'bad');
+  const ok  = rooms.filter(r => r.verdict === 'ok');
 
-  // Reset color class
-  scoreEl.className = 'hv';
-  card.className = 'overall-verdict';
+  const total = rooms.length;
+  const plural = total > 1 ? 'ambientes' : 'ambiente';
 
-  if (pct >= 75) {
-    scoreEl.classList.add('score-good');
-    card.classList.add('good');
-    icon.textContent = '🟢';
-    title.textContent = 'Señal excelente en toda la casa';
-    msg.textContent = `Tu hogar tiene una cobertura WiFi muy buena. La mayoría de tus ambientes reciben señal de calidad para video 4K, videollamadas y juegos en línea.`;
-    tip.innerHTML = `<strong>💡 Consejo:</strong> Mantén el router en su posición actual. Si en algún rincón la señal baja, un extensor puntual es suficiente.`;
-  } else if (pct >= 40) {
-    scoreEl.classList.add('score-ok');
-    card.classList.add('ok');
-    icon.textContent = '🟡';
-    title.textContent = 'Señal aceptable — hay margen de mejora';
-    const names = badRooms.map(r=>r.name).join(', ');
-    msg.textContent = `La señal llega bien a varios ambientes, pero hay zonas donde puede trabarse. ${names ? 'Los ambientes con más problemas: ' + names + '.' : ''}Esto suele deberse a paredes gruesas o distancia al router.`;
-    tip.innerHTML = `<strong>💡 Qué puedes hacer:</strong> Mueve el router a un lugar más central y elevado. Si el problema persiste, un <strong>repetidor WiFi Mesh de WIN</strong> puede extender la señal a los ambientes débiles sin cambiar tu plan.`;
-  } else {
-    scoreEl.classList.add('score-bad');
-    card.classList.add('bad');
-    icon.textContent = '🔴';
-    title.textContent = 'Señal insuficiente en gran parte de la casa';
-    const names = badRooms.map(r=>r.name).join(', ');
-    msg.textContent = `Tu cobertura WiFi necesita mejoras importantes. ${names ? 'Ambientes con señal débil: ' + names + '.' : ''} En estas zonas hasta cargar páginas puede sentirse lento.`;
-    tip.innerHTML = `<strong>💡 Recomendación WIN:</strong> Primero prueba reubicar el router al centro de la casa y en alto. Si no mejora, un sistema <strong>WiFi Mesh de WIN</strong> es la solución ideal: cubre toda la casa con varios nodos que trabajan como uno solo. Consulta a tu asesor WIN.`;
+  if (bad.length){
+    return {
+      level: 'bad',
+      emoji: '🚨',
+      title: '¡Detectamos una zona con baja cobertura!',
+      msg: `Tu señal presenta una zona crítica: ${bad.map(r=>r.name).join(', ')}.`,
+      reward: 'S/ 50 de descuento en tu kit Mesh WIN 360',
+      head: `${bad.length} de ${total} ${plural} con señal débil`,
+      sub: 'Hay una zona crítica por resolver'
+    };
   }
-  card.style.display = 'flex';
+  if (ok.length){
+    return {
+      level: 'ok',
+      emoji: '📶',
+      title: '¡Tu hogar puede estar mejor conectado!',
+      msg: `Detectamos zonas con señal atenuada: ${ok.map(r=>r.name).join(', ')}.`,
+      reward: '15% de descuento en tu primer Mesh WIN 360',
+      head: `${ok.length} de ${total} ${plural} aceptable${ok.length>1?'s':''}`,
+      sub: 'Hay margen de mejora en la cobertura'
+    };
+  }
+  return {
+    level: 'good',
+    emoji: '🎉',
+    title: '¡Felicitaciones! Tu hogar está 100% optimizado',
+    msg: 'Tu red funciona sin bloqueos en todos los ambientes que mediste.',
+    reward: '15 días gratis de WIN Play',
+    head: `${total} de ${total} ${plural} con señal excelente`,
+    sub: 'Cobertura pareja en toda la casa'
+  };
+}
+
+/* pinta el anillo de puntaje (reporte propio y reporte compartido) */
+function paintRing(ringId, pctId, pct, level){
+  const RING_C = 201.06; // 2π × r(32)
+  const prog = document.getElementById(ringId);
+  prog.className.baseVal = 'ring-prog score-' + level;
+  prog.style.strokeDashoffset = RING_C * (1 - Math.max(0, Math.min(100, pct)) / 100);
+  document.getElementById(pctId).textContent = pct + '%';
+}
+
+function overallVerdict(rooms){
+  const st   = overallState(rooms);
+  const card = document.getElementById('overallVerdict');
+  card.className = 'overall-verdict ' + st.level;
+
+  document.getElementById('ovBadge').textContent  = st.emoji;
+  document.getElementById('ovTitle').textContent  = st.title;
+  document.getElementById('ovMsg').textContent    = st.msg;
+  document.getElementById('ovReward').textContent = st.reward;
+  card.style.display = 'block';
+  return st;
 }
 
 function goToReport(){
   if (!state.rooms.length){ toast('Mide al menos un ambiente primero'); return; }
   const c = state.customer;
   document.getElementById('reportCustomerLine').textContent = c.nombre
-    ? `A nombre de ${c.nombre} (DNI ${c.dni}) · ${customerLocationText().split(' (')[0]}`
+    ? `${c.nombre} · DNI ${c.dni} · ${customerLocationText().split(' (')[0]}`
     : 'Esto es lo que le llegaría a WIN si lo envías.';
+
   const pct = calcScore(state.rooms);
-  const good = state.rooms.filter(r=>r.verdict==='good').length;
-  const ok   = state.rooms.filter(r=>r.verdict==='ok').length;
-  const bad  = state.rooms.filter(r=>r.verdict==='bad').length;
-  const badRooms = state.rooms.filter(r=>r.verdict==='bad');
-  document.getElementById('homeScore').textContent = pct + '%';
-  const parts = [];
-  if (good) parts.push(`${good} excelente${good>1?'s':''}`);
-  if (ok)   parts.push(`${ok} aceptable${ok>1?'s':''}`);
-  if (bad)  parts.push(`${bad} débil${bad>1?'es':''}`);
-  document.getElementById('homeScoreLabel').textContent = parts.join(' · ') + ` de ${state.rooms.length} ambiente${state.rooms.length>1?'s':''}`;
-  overallVerdict(pct, badRooms);
+  const st  = overallVerdict(state.rooms);
+  paintRing('ringProgress', 'homeScore', pct, st.level);
+  document.getElementById('homeScoreHead').textContent  = st.head;
+  document.getElementById('homeScoreLabel').textContent = st.sub;
 
   const list = document.getElementById('reportList');
   list.innerHTML = '';
@@ -924,11 +995,14 @@ function customerLocationText(){
 
 function buildReportText(){
   const c = state.customer;
+  const st = overallState(state.rooms);
   const lines = [
     `Reporte WIN HomeCheck — ${new Date().toLocaleString('es-PE')}`,
     `Titular: ${c.nombre || '—'}`,
     `DNI: ${c.dni || '—'}`,
     `Ubicación: ${customerLocationText()}`,
+    `Estado del hogar: ${st.emoji} ${st.title}`,
+    `Beneficio desbloqueado: ${st.reward}`,
     ''
   ];
   state.rooms.forEach(r=>{
@@ -1004,17 +1078,11 @@ function loadSharedReport(){
       verdict: r.v
     }));
 
-    const pct  = calcScore(rooms);
-    const good = rooms.filter(r => r.verdict === 'good').length;
-    const ok   = rooms.filter(r => r.verdict === 'ok').length;
-    const bad  = rooms.filter(r => r.verdict === 'bad').length;
-
-    document.getElementById('sharedScore').textContent = pct + '%';
-    const parts2 = [];
-    if (good) parts2.push(`${good} excelente${good>1?'s':''}`);
-    if (ok)   parts2.push(`${ok} aceptable${ok>1?'s':''}`);
-    if (bad)  parts2.push(`${bad} débil${bad>1?'es':''}`);
-    document.getElementById('sharedScoreLabel').textContent = parts2.join(' · ') + ` de ${rooms.length} ambiente${rooms.length>1?'s':''}`;
+    const pct = calcScore(rooms);
+    const st  = overallState(rooms);
+    paintRing('sharedRingProgress', 'sharedScore', pct, st.level);
+    document.getElementById('sharedScoreHead').textContent  = st.head;
+    document.getElementById('sharedScoreLabel').textContent = st.sub;
 
     const date = payload.ts ? new Date(payload.ts).toLocaleString('es-PE') : '';
     const parts0 = [];
