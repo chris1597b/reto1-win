@@ -233,11 +233,6 @@
     color:var(--brand); margin-bottom:4px;
   }
   .overall-verdict .rw-value{font-size:15px; font-weight:700; color:var(--ink); line-height:1.35;}
-  textarea.report-preview{
-    width:100%; min-height:150px; border:1px solid var(--line); border-radius:12px;
-    padding:14px; font-size:13px; font-family:'SFMono-Regular',Consolas,monospace;
-    color:var(--ink-soft); resize:none; margin-bottom:16px; background:var(--surface);
-  }
   .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:999px; font-size:13.5px; opacity:0; pointer-events:none; transition:opacity .25s ease;}
   .toast.show{opacity:1;}
 
@@ -299,26 +294,6 @@
   }
   .todo-item span{font-size:13px; line-height:1.45; color:var(--ink); transition:color .15s;}
   .todo-item input:checked + span{color:var(--ink-soft); text-decoration:line-through;}
-
-  /* --- share link box --- */
-  .share-link-box{
-    display:flex; gap:8px; align-items:center;
-    background:var(--surface); border:1.5px solid var(--line); border-radius:12px;
-    padding:10px 14px; margin-bottom:16px;
-  }
-  .share-link-box input{
-    flex:1; border:none; outline:none; font-size:13px;
-    font-family:'SFMono-Regular',Consolas,monospace;
-    color:var(--ink-soft); background:transparent;
-    min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  }
-  .copy-btn{
-    flex:none; padding:7px 14px; border-radius:8px; border:none;
-    background:var(--ink); color:#fff; font-size:12.5px; font-weight:600;
-    cursor:pointer; font-family:'Space Grotesk',sans-serif;
-    transition:opacity .12s;
-  }
-  .copy-btn:active{opacity:.75;}
 
   /* --- shared report banner --- */
   .shared-banner{
@@ -484,13 +459,6 @@
       </div>
     </div>
     <div class="measured-list" id="reportList"></div>
-    <textarea class="report-preview" id="reportPreview" readonly></textarea>
-
-    <!-- Share link box -->
-    <div class="share-link-box">
-      <input type="text" id="shareLinkInput" readonly placeholder="Genera el enlace…">
-      <button class="copy-btn" onclick="copyShareLink()">Copiar</button>
-    </div>
 
     <button class="btn btn-primary" onclick="sendReport()">Enviar reporte a WIN</button>
     <div class="btn-row">
@@ -869,8 +837,10 @@ function finishMeasurement(down, up, latency, jitter, failed=false){
 
 /* ---------------- reporte final ---------------- */
 function calcScore(rooms){
-  const weights = { good: 100, ok: 50, bad: 0 };
-  const sum = rooms.reduce((acc, r) => acc + (weights[r.verdict] ?? 0), 0);
+  // Un ambiente débil no vale cero: sigue habiendo señal, solo que mala.
+  // Con 0 el reporte de un solo ambiente salía en 0% y parecía que la medición falló.
+  const weights = { good: 100, ok: 55, bad: 20 };
+  const sum = rooms.reduce((acc, r) => acc + (weights[r.verdict] ?? 20), 0);
   return Math.round(sum / rooms.length);
 }
 
@@ -990,12 +960,6 @@ function goToReport(){
     list.appendChild(card);
   });
 
-  document.getElementById('reportPreview').value = buildReportText();
-
-  // Generar enlace compartible
-  const shareUrl = buildShareUrl();
-  document.getElementById('shareLinkInput').value = shareUrl;
-
   show('screen-report');
 }
 
@@ -1053,14 +1017,20 @@ function buildShareUrl(){
 }
 
 function copyShareLink(){
-  const input = document.getElementById('shareLinkInput');
-  if (!input.value || input.value === 'Genera el enlace…') return;
-  navigator.clipboard.writeText(input.value)
+  if (!state.rooms.length) return;
+  const url = buildShareUrl();
+  navigator.clipboard.writeText(url)
     .then(() => toast('¡Enlace copiado al portapapeles!'))
     .catch(() => {
-      input.select();
-      document.execCommand('copy');
-      toast('¡Enlace copiado!');
+      // respaldo para navegadores sin API de portapapeles
+      const tmp = document.createElement('textarea');
+      tmp.value = url;
+      tmp.style.cssText = 'position:fixed; top:0; left:0; opacity:0;';
+      document.body.appendChild(tmp);
+      tmp.select();
+      try { document.execCommand('copy'); toast('¡Enlace copiado!'); }
+      catch(e) { toast('No se pudo copiar el enlace'); }
+      document.body.removeChild(tmp);
     });
 }
 

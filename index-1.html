@@ -837,10 +837,8 @@ function finishMeasurement(down, up, latency, jitter, failed=false){
 
 /* ---------------- reporte final ---------------- */
 function calcScore(rooms){
-  // Un ambiente débil no vale cero: sigue habiendo señal, solo que mala.
-  // Con 0 el reporte de un solo ambiente salía en 0% y parecía que la medición falló.
-  const weights = { good: 100, ok: 55, bad: 20 };
-  const sum = rooms.reduce((acc, r) => acc + (weights[r.verdict] ?? 20), 0);
+  const weights = { good: 100, ok: 50, bad: 0 };
+  const sum = rooms.reduce((acc, r) => acc + (weights[r.verdict] ?? 0), 0);
   return Math.round(sum / rooms.length);
 }
 
