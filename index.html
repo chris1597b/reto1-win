@@ -101,6 +101,44 @@
     width:100%; padding:14px 16px; border-radius:12px; border:1.5px solid var(--line);
     font-size:15px; font-family:inherit; margin-bottom:8px; background:var(--surface);
   }
+  /* --- datos del titular --- */
+  .field-label{font-size:13.5px; font-weight:600; color:var(--ink); margin:0 0 6px;}
+  input.field-input{
+    width:100%; padding:14px 16px; border-radius:12px; border:1.5px solid var(--line);
+    font-size:15px; font-family:inherit; margin-bottom:16px; background:var(--surface); color:var(--ink);
+  }
+  input.field-input:focus{outline:none; border-color:var(--brand);}
+  input.field-input.invalid{border-color:var(--bad);}
+  .field-hint{font-size:12.5px; color:var(--ink-soft); margin:-10px 0 16px;}
+  .loc-box{
+    border:1.5px solid var(--line); border-radius:12px; padding:14px; margin-bottom:8px; background:var(--surface);
+  }
+  .loc-status{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--ink-soft); margin-bottom:10px;}
+  .loc-status .loc-dot{width:8px;height:8px;border-radius:50%; background:var(--line); flex:none;}
+  .loc-status.ok .loc-dot{background:var(--good);}
+  .loc-status.err .loc-dot{background:var(--bad);}
+  .map-frame{
+    width:100%; height:180px; border:none; border-radius:10px; display:none; margin-bottom:10px; background:var(--bg);
+  }
+  .map-frame.show{display:block;}
+  .btn-loc{
+    width:100%; padding:13px 16px; border-radius:10px; border:1.5px solid var(--line);
+    background:var(--bg); color:var(--ink); font-family:'Space Grotesk',sans-serif; font-weight:600;
+    font-size:14.5px; cursor:pointer;
+  }
+  .btn-loc:active{opacity:.75;}
+  .privacy-note{font-size:12px; color:var(--ink-soft); line-height:1.5; margin-top:14px;}
+  .consent-box{
+    display:flex; gap:12px; align-items:flex-start;
+    background:var(--surface); border:1.5px solid var(--line); border-radius:12px;
+    padding:14px; margin-top:20px;
+  }
+  .consent-box.invalid{border-color:var(--bad);}
+  .consent-box input[type="checkbox"]{
+    flex:none; width:20px; height:20px; margin-top:1px; accent-color:var(--brand); cursor:pointer;
+  }
+  .consent-box label{font-size:13px; line-height:1.5; color:var(--ink); cursor:pointer;}
+
   .measured-list{display:flex; flex-direction:column; gap:10px; margin:20px 0;}
   .measured-row{display:flex; align-items:center; gap:10px; padding:13px 14px; background:var(--surface); border:1px solid var(--line); border-radius:12px;}
   .dot{width:10px;height:10px;border-radius:50%; flex:none;}
@@ -267,7 +305,36 @@
       <div class="step-mini"><div class="num">3</div><div>Repite en cada ambiente y envía el reporte con un toque.</div></div>
     </div>
     <div class="spacer"></div>
-    <button class="btn btn-primary" onclick="startFlow()">Empezar medición</button>
+    <button class="btn btn-primary" onclick="goToDatos()">Empezar medición</button>
+  </section>
+
+  <!-- SCREEN 1.5: DATOS DEL TITULAR -->
+  <section class="screen" id="screen-datos">
+    <h2 style="font-size:24px; margin-bottom:8px;">¿A nombre de quién va el reporte?</h2>
+    <p class="lede" style="margin-bottom:22px;">Estos datos viajan junto a tu reporte para que WIN sepa quién lo envía y dónde queda la casa.</p>
+
+    <p class="field-label">Nombre del titular</p>
+    <input type="text" class="field-input" id="inputNombre" placeholder="Nombre y apellido" autocomplete="name">
+
+    <p class="field-label">DNI</p>
+    <input type="text" class="field-input" id="inputDni" placeholder="8 dígitos" inputmode="numeric" maxlength="8" autocomplete="off">
+    <p class="field-hint">Solo se usa para identificar tu cuenta con WIN.</p>
+
+    <p class="field-label">Ubicación de la casa</p>
+    <div class="loc-box">
+      <div class="loc-status" id="locStatus"><div class="loc-dot"></div><span id="locStatusText">Aún no compartes tu ubicación</span></div>
+      <iframe class="map-frame" id="mapFrame" loading="lazy"></iframe>
+      <button type="button" class="btn-loc" id="btnUbicacion" onclick="requestLocation()">📍 Compartir mi ubicación actual</button>
+    </div>
+    <p class="privacy-note">Tu ubicación solo se usa para ubicar la casa en el reporte que le envías a WIN; no se comparte con nadie más.</p>
+
+    <div class="consent-box" id="consentBox">
+      <input type="checkbox" id="inputConsent">
+      <label for="inputConsent">Entiendo que tu nombre, DNI y ubicación se enviarán a WIN junto con el resultado de la medición, para fines de investigación y mejora de la calidad de su servicio de internet.</label>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="datosContinueBtn" onclick="startFlow()" disabled>Continuar</button>
   </section>
 
   <!-- SCREEN 2: ROOM PICKER -->
@@ -322,7 +389,7 @@
   <!-- SCREEN 5: REPORT -->
   <section class="screen" id="screen-report">
     <h2 style="font-size:24px; margin-bottom:4px;">Reporte de tu casa</h2>
-    <p class="lede" style="margin-bottom:0;">Esto es lo que le llegaría a WIN si lo envías.</p>
+    <p class="lede" style="margin-bottom:0;" id="reportCustomerLine">Esto es lo que le llegaría a WIN si lo envías.</p>
     <div class="home-score">
       <div class="hv" id="homeScore">--%</div>
       <div class="hl" id="homeScoreLabel">ambientes con buena señal</div>
@@ -377,7 +444,10 @@
 
 <script>
 /* ---------------- estado ---------------- */
-const state = { rooms: [], currentRoomName: null, currentTest: null };
+const state = {
+  rooms: [], currentRoomName: null, currentTest: null,
+  customer: { nombre:'', dni:'', lat:null, lng:null }
+};
 const COMMON_ROOMS = ['Sala','Cocina','Dormitorio principal','Segundo piso','Comedor','Estudio'];
 const CF_BASE = 'https://speed.cloudflare.com';
 
@@ -391,8 +461,109 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('show'), 2200);
 }
 
+/* ---------------- datos del titular ---------------- */
+function goToDatos(){
+  prefillCustomerFromStorage();
+  updateDatosContinue();
+  show('screen-datos');
+}
+
+function prefillCustomerFromStorage(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('winhc_customer') || 'null');
+    if (saved){
+      if (saved.nombre) document.getElementById('inputNombre').value = saved.nombre;
+      if (saved.dni) document.getElementById('inputDni').value = saved.dni;
+    }
+  } catch(e) { /* localStorage no disponible, seguimos sin prellenar */ }
+}
+
+function saveCustomerToStorage(){
+  try{
+    localStorage.setItem('winhc_customer', JSON.stringify({
+      nombre: state.customer.nombre, dni: state.customer.dni
+    }));
+  } catch(e) { /* no pasa nada si no se puede guardar */ }
+}
+
+function isValidDni(v){ return /^\d{8}$/.test(v.trim()); }
+
+function updateDatosContinue(){
+  const nombre = document.getElementById('inputNombre').value.trim();
+  const dni = document.getElementById('inputDni').value.trim();
+  const dniInput = document.getElementById('inputDni');
+  dniInput.classList.toggle('invalid', dni.length > 0 && !isValidDni(dni));
+
+  const hasLocation = state.customer.lat !== null && state.customer.lng !== null;
+  const consented = document.getElementById('inputConsent').checked;
+  const ok = nombre.length > 1 && isValidDni(dni) && hasLocation && consented;
+  document.getElementById('datosContinueBtn').disabled = !ok;
+
+  state.customer.nombre = nombre;
+  state.customer.dni = dni;
+}
+
+document.getElementById('inputNombre').addEventListener('input', updateDatosContinue);
+document.getElementById('inputDni').addEventListener('input', e=>{
+  e.target.value = e.target.value.replace(/\D/g,'').slice(0,8);
+  updateDatosContinue();
+});
+document.getElementById('inputConsent').addEventListener('change', e=>{
+  document.getElementById('consentBox').classList.toggle('invalid', false);
+  updateDatosContinue();
+});
+
+function setLocStatus(mode, text){
+  const box = document.getElementById('locStatus');
+  box.className = 'loc-status' + (mode ? ' ' + mode : '');
+  document.getElementById('locStatusText').textContent = text;
+}
+
+function showMap(lat, lng){
+  const frame = document.getElementById('mapFrame');
+  frame.src = `https://www.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+  frame.classList.add('show');
+}
+
+function requestLocation(){
+  const btn = document.getElementById('btnUbicacion');
+  if (!navigator.geolocation){
+    setLocStatus('err', 'Tu navegador no soporta compartir ubicación.');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Obteniendo tu ubicación…';
+  setLocStatus('', 'Buscando tu ubicación…');
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      state.customer.lat = pos.coords.latitude;
+      state.customer.lng = pos.coords.longitude;
+      setLocStatus('ok', `Ubicación compartida ✓ (precisión ±${Math.round(pos.coords.accuracy)} m)`);
+      showMap(pos.coords.latitude, pos.coords.longitude);
+      btn.disabled = false;
+      btn.textContent = '📍 Actualizar mi ubicación';
+      updateDatosContinue();
+    },
+    err => {
+      const messages = {
+        1: 'Bloqueaste el permiso de ubicación. Actívalo en los ajustes del navegador para compartirla.',
+        2: 'No pudimos determinar tu ubicación en este momento. Inténtalo de nuevo.',
+        3: 'La búsqueda de tu ubicación tardó demasiado. Inténtalo de nuevo.'
+      };
+      setLocStatus('err', messages[err.code] || 'No pudimos obtener tu ubicación.');
+      btn.disabled = false;
+      btn.textContent = '📍 Compartir mi ubicación actual';
+      updateDatosContinue();
+    },
+    { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+  );
+}
+
 /* ---------------- flujo ---------------- */
 async function startFlow(){
+  if (document.getElementById('datosContinueBtn').disabled) return;
+  saveCustomerToStorage();
   // Pide permiso de movimiento en iOS dentro de un gesto de usuario
   if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
     try { await DeviceMotionEvent.requestPermission(); } catch(e) {}
@@ -657,6 +828,10 @@ function overallVerdict(pct, badRooms){
 
 function goToReport(){
   if (!state.rooms.length){ toast('Mide al menos un ambiente primero'); return; }
+  const c = state.customer;
+  document.getElementById('reportCustomerLine').textContent = c.nombre
+    ? `A nombre de ${c.nombre} (DNI ${c.dni}) · ${customerLocationText().split(' (')[0]}`
+    : 'Esto es lo que le llegaría a WIN si lo envías.';
   const pct = calcScore(state.rooms);
   const good = state.rooms.filter(r=>r.verdict==='good').length;
   const ok   = state.rooms.filter(r=>r.verdict==='ok').length;
@@ -712,8 +887,21 @@ function toggleDiag(header){
   header.parentElement.classList.toggle('open');
 }
 
+function customerLocationText(){
+  const c = state.customer;
+  if (c.lat !== null && c.lng !== null) return `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)} (https://www.google.com/maps?q=${c.lat},${c.lng})`;
+  return '—';
+}
+
 function buildReportText(){
-  const lines = [`Reporte WIN HomeCheck — ${new Date().toLocaleString('es-PE')}`, ''];
+  const c = state.customer;
+  const lines = [
+    `Reporte WIN HomeCheck — ${new Date().toLocaleString('es-PE')}`,
+    `Titular: ${c.nombre || '—'}`,
+    `DNI: ${c.dni || '—'}`,
+    `Ubicación: ${customerLocationText()}`,
+    ''
+  ];
   state.rooms.forEach(r=>{
     const diag = diagnose(r.downloadMbps, r.uploadMbps, r.latencyMs, r.jitterMs);
     lines.push(`${r.name}: ${r.verdict.toUpperCase()}`);
@@ -727,8 +915,11 @@ function buildReportText(){
 
 /* ---------------- enlace compartible ---------------- */
 function buildShareUrl(){
+  const c = state.customer;
   const payload = {
     ts: Date.now(),
+    cn: c.nombre || undefined,
+    cl: (c.lat !== null && c.lng !== null) ? `${c.lat.toFixed(5)},${c.lng.toFixed(5)}` : undefined,
     rooms: state.rooms.map(r => ({
       n: r.name,
       d: parseFloat(r.downloadMbps.toFixed(2)),
@@ -797,7 +988,11 @@ function loadSharedReport(){
     document.getElementById('sharedScoreLabel').textContent = parts2.join(' · ') + ` de ${rooms.length} ambiente${rooms.length>1?'s':''}`;
 
     const date = payload.ts ? new Date(payload.ts).toLocaleString('es-PE') : '';
-    document.getElementById('sharedDate').textContent = date ? `Medido el ${date}` : '';
+    const parts0 = [];
+    if (date) parts0.push(`Medido el ${date}`);
+    if (payload.cn) parts0.push(`por ${payload.cn}`);
+    if (payload.cl) parts0.push(`en ${payload.cl}`);
+    document.getElementById('sharedDate').textContent = parts0.join(' · ');
 
     const list = document.getElementById('sharedReportList');
     list.innerHTML = '';
@@ -842,6 +1037,12 @@ async function sendReport(){
 function resetAll(){
   state.rooms = [];
   state.currentRoomName = null;
+  state.customer.lat = null;
+  state.customer.lng = null;
+  document.getElementById('mapFrame').classList.remove('show');
+  document.getElementById('btnUbicacion').textContent = '📍 Compartir mi ubicación actual';
+  document.getElementById('inputConsent').checked = false;
+  setLocStatus('', 'Aún no compartes tu ubicación');
   show('screen-intro');
 }
 </script>
