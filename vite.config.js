@@ -4,6 +4,6 @@ export default defineConfig({
   root: '.',
   server: {
     port: 3000,
-    open: '/win-homecheck.html'
+    open: '/'
   }
 })
