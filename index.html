@@ -279,15 +279,26 @@
     border:1px solid var(--line); font-size:12.5px; color:var(--ink-soft);
     background:var(--bg);
   }
-  .diag-why{
-    font-size:14px; line-height:1.6; color:var(--ink); margin:0 0 10px;
+  /* causas: una línea corta cada una */
+  .cause-list{display:flex; flex-direction:column; gap:10px; margin-bottom:14px;}
+  .cause{display:flex; gap:10px; align-items:flex-start;}
+  .cause-ic{font-size:17px; line-height:1.3; flex:none;}
+  .cause-txt{display:flex; flex-direction:column; gap:1px; min-width:0;}
+  .cause-txt b{font-size:14px; font-weight:700; color:var(--ink); line-height:1.35;}
+  .cause-txt span{font-size:13px; color:var(--ink-soft); line-height:1.45;}
+
+  /* acciones: lista marcable */
+  .todo{background:var(--bg); border-radius:10px; padding:12px;}
+  .todo-head{font-size:13px; font-weight:700; color:var(--ink); margin-bottom:9px;}
+  .todo-item{
+    display:flex; gap:10px; align-items:flex-start; cursor:pointer;
+    padding:6px 0; -webkit-user-select:none; user-select:none;
   }
-  .diag-tip{
-    font-size:13px; line-height:1.55; color:var(--ink-soft);
-    padding:10px 12px; background:var(--bg); border-radius:10px;
-    border-left:3px solid var(--brand);
+  .todo-item input{
+    flex:none; width:18px; height:18px; margin:0; accent-color:var(--good); cursor:pointer;
   }
-  .diag-tip strong{color:var(--ink); font-weight:600;}
+  .todo-item span{font-size:13px; line-height:1.45; color:var(--ink); transition:color .15s;}
+  .todo-item input:checked + span{color:var(--ink-soft); text-decoration:line-through;}
 
   /* --- share link box --- */
   .share-link-box{
@@ -797,47 +808,42 @@ function classify(down, up, latency){
 
 /* ---------------- diagnóstico de causas en lenguaje común ---------------- */
 function diagnose(down, up, latency, jitter){
-  const causes = [];
-  const tips = [];
+  const causes = [];   // {icon, title, text} — una línea corta cada una
+  const tips = [];     // frases de una línea, accionables
 
   // --- velocidad de bajada ---
   if (down < 5) {
-    causes.push('La señal del router llega muy debilitada a este lugar. Pasa algo parecido a cuando intentas escuchar música desde una habitación muy lejana con la puerta cerrada: el sonido llega, pero muy bajo.');
-    tips.push('Acerca el router o coloca un repetidor de señal (extensor WiFi) más cerca de este ambiente.');
+    causes.push({icon:'📶', title:'La señal llega muy débil', text:'Como oír música desde otro cuarto con la puerta cerrada.'});
+    tips.push('Acerca el router o pon un repetidor cerca de este ambiente');
   } else if (down < 25) {
-    causes.push('La velocidad es suficiente para lo básico, pero el router está demasiado lejos o hay paredes gruesas, muebles metálicos o electrodomésticos en el camino que debilitan la señal.');
-    tips.push('Prueba mover el router a un lugar más central de la casa o elevar su posición (encima de un mueble alto funciona mejor que en el piso).');
+    causes.push({icon:'🧱', title:'Algo bloquea la señal', text:'Paredes gruesas, muebles metálicos o distancia al router.'});
+    tips.push('Mueve el router a un lugar más central y en alto');
   }
 
   // --- latencia alta ---
   if (latency > 150) {
-    causes.push('El tiempo de respuesta es muy alto. Esto es como si cada vez que hablas por teléfono hubiera un silencio largo antes de que te contesten. Suele ocurrir cuando muchos dispositivos usan el wifi al mismo tiempo, o cuando el router está muy lejos.');
-    tips.push('Desconecta temporalmente dispositivos que no estés usando (Smart TVs, consolas, celulares en segundo plano) y verifica que nadie esté descargando archivos grandes.');
+    causes.push({icon:'⏳', title:'El internet tarda en responder', text:'Como si te contestaran tarde cada vez que hablas.'});
+    tips.push('Apaga equipos que no uses: TV, consolas, descargas');
   } else if (latency > 50) {
-    causes.push('El tiempo de respuesta es algo elevado. Las páginas cargan bien, pero en videollamadas o juegos puedes notar pequeños cortes. Puede deberse a la distancia al router o a paredes que bloquean parte de la señal.');
+    causes.push({icon:'⏳', title:'Respuesta un poco lenta', text:'Se nota en videollamadas y juegos, no al navegar.'});
   }
 
   // --- inestabilidad (jitter) ---
   if (jitter > 50) {
-    causes.push('La conexión es inestable: la velocidad sube y baja constantemente. Esto suele pasar por interferencia de otros dispositivos que usan la misma frecuencia (hornos microondas, teléfonos inalámbricos, routers de vecinos o demasiados dispositivos conectados).');
-    tips.push('Si tu router tiene banda de 5 GHz, conéctate a esa en lugar de la de 2.4 GHz: es menos susceptible a interferencias.');
+    causes.push({icon:'📉', title:'La señal sube y baja', text:'Interferencia del microondas, vecinos u otros equipos.'});
+    tips.push('Conéctate a la red de 5 GHz si tu router la tiene');
   }
 
   // --- asimetría subida/bajada ---
   if (up < 2 && down >= 10) {
-    causes.push('La velocidad de subida es muy baja comparada con la de bajada. Esto afecta principalmente las videollamadas (donde necesitas enviar tu imagen y voz) y el trabajo desde casa.');
-    tips.push('Este desbalance puede ser parte del plan contratado, pero si el problema es solo en este ambiente, acercarse al router mejora la subida.');
+    causes.push({icon:'📤', title:'Cuesta enviar lo que subes', text:'Afecta sobre todo a tus videollamadas.'});
   }
 
-  // --- sin causas identificadas (señal buena) ---
-  if (causes.length === 0) {
-    causes.push('La señal en este ambiente llega en buenas condiciones. El router tiene buena cobertura aquí y no hay obstáculos importantes que debiliten la conexión.');
-  }
-  if (tips.length === 0) {
-    tips.push('No hay nada que cambiar aquí. Si otros ambientes tienen problemas, considera mantener el router en una posición que favorezca esas zonas.');
-  }
+  if (!causes.length) causes.push({icon:'✅', title:'Aquí todo llega bien', text:'El router cubre este ambiente sin obstáculos.'});
+  if (!tips.length)   tips.push('Nada que cambiar en este ambiente');
 
-  return { causes: causes.join(' '), tip: tips.join(' ') };
+  // corto a propósito: máximo 2 causas y 3 acciones
+  return { causes: causes.slice(0, 2), tips: tips.slice(0, 3) };
 }
 
 function finishMeasurement(down, up, latency, jitter, failed=false){
@@ -966,8 +972,18 @@ function goToReport(){
           <span class="diag-chip">⏱ ${r.latencyMs.toFixed(0)} ms latencia</span>
           <span class="diag-chip">〜 ${r.jitterMs.toFixed(0)} ms estabilidad</span>
         </div>
-        <p class="diag-why"><strong>¿Por qué es así?</strong><br>${diag.causes}</p>
-        <div class="diag-tip"><strong>💡 Qué puedes hacer:</strong> ${diag.tip}</div>
+        <div class="cause-list">
+          ${diag.causes.map(c => `
+            <div class="cause">
+              <span class="cause-ic">${c.icon}</span>
+              <div class="cause-txt"><b>${c.title}</b><span>${c.text}</span></div>
+            </div>`).join('')}
+        </div>
+        <div class="todo">
+          <div class="todo-head">💡 Prueba esto</div>
+          ${diag.tips.map(t => `
+            <label class="todo-item"><input type="checkbox"><span>${t}</span></label>`).join('')}
+        </div>
       </div>`;
     // abrir la primera tarjeta por defecto
     if (i === 0) card.classList.add('open');
@@ -1009,8 +1025,8 @@ function buildReportText(){
     const diag = diagnose(r.downloadMbps, r.uploadMbps, r.latencyMs, r.jitterMs);
     lines.push(`${r.name}: ${r.verdict.toUpperCase()}`);
     lines.push(`  Bajada: ${r.downloadMbps.toFixed(1)} Mbps | Subida: ${r.uploadMbps.toFixed(1)} Mbps | Latencia: ${r.latencyMs.toFixed(0)} ms | Estabilidad: ${r.jitterMs.toFixed(0)} ms`);
-    lines.push(`  Causa: ${diag.causes}`);
-    lines.push(`  Recomendación: ${diag.tip}`);
+    lines.push(`  Causa: ${diag.causes.map(c => c.title).join(' · ')}`);
+    lines.push(`  Recomendación: ${diag.tips.join(' · ')}`);
     lines.push('');
   });
   return lines.join('\n');
